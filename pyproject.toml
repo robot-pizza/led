@@ -1,0 +1,19 @@
+[project]
+name = "led"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+# SPDX expression only. license-files can't reach outside the project
+# directory, and LICENSE.txt is at the repository root, a level up.
+license = "BSD-3-Clause"
+requires-python = ">=3.14"
+dependencies = [
+    "bleak>=3.0.2",
+    "pillow>=12.3.0",
+    "pure-python-adb",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.uv.sources]
+pure-python-adb = { git = "https://github.com/Swind/pure-python-adb" }

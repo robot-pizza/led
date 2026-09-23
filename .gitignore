@@ -1,0 +1,10 @@
+*.exe
+*.obj
+*.ilk
+*.pdb
+.vs
+emotxtprog/x64
+.venv/
+__pycache__/
+*.pyc
+led/tests/snapshots/
