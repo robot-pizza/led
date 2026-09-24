@@ -14,15 +14,19 @@ So the stopwatch gets the engine, and the countdown is walked down from
 here, one reset per second. That is the way to show two moving counters
 at once, and it also works.
 
-The digit font is chosen to fit half the panel: the manufacturer's own
-7x16 glyphs where there is room, and a smaller 5x7 font on a 16-row
-panel, where two 16-tall counters would not fit at all.
+The digit font is chosen to fit half the panel: font_5x9's where there
+is room, and a smaller 5x7 font on a 16-row panel, whose 8-row halves
+are one row short of it.
+
+Unlike a Clock, a TimeCount item has no blinking-colon flag, so these
+colons stay lit.
 """
 
 import asyncio
 import time
 
 from _common import connect
+import font_5x9
 import led_protocol as lp
 from requests import (
     CountdownResetRequest,
@@ -38,21 +42,30 @@ GREEN, RED = 0x00FF00, 0xFF0000
 STOPWATCH, COUNTDOWN = 1, 0
 
 # A colon for the small font: two columns, lit at rows 2 and 5, MSB is
-# the top row. The manufacturer ships one only at 16 rows.
+# the top row.
 SMALL_COLON = bytes([0x24, 0x24])
 
 
 def font_for(rows: int):
-    """(glyphs, colon, width, height) fitting `rows` rows."""
-    if rows >= 16:
-        return lp.REAL_DIGIT_GLYPH_TABLE_16X32, lp.REAL_COLON_GLYPH_16X32, 7, 16
-    return lp.digit_glyph_table(), SMALL_COLON, 5, 7
+    """(glyphs, colon, digit width, digit height, pair width, colon
+    width) fitting `rows` rows.
+
+    A pair's width spans both its digits, the second drawn half that
+    width in. font_5x9 gets a blank column after each digit so the two
+    don't touch; the 5x7 font's own glyphs already leave one.
+
+    A colon bitmap must be exactly as wide as its field: the sign draws
+    the field's full width, reading past a short bitmap into whatever
+    bytes come next."""
+    if rows >= font_5x9.HEIGHT:
+        return (font_5x9.digit_table(), font_5x9.colon(2),
+                font_5x9.WIDTH, font_5x9.HEIGHT, (font_5x9.WIDTH + 1) * 2, 2)
+    return lp.digit_glyph_table(), SMALL_COLON, 5, 7, 10, 2
 
 
 def counter(mode: int, row: int, colour: int, left: int, font) -> bytes:
     """MM:SS at `left`, occupying `row` down."""
-    glyphs, colon, digit_w, digit_h = font
-    pair, colon_w = digit_w * 2, max(2, digit_w // 2)
+    glyphs, colon, digit_w, digit_h, pair, colon_w = font
     return TimeCountContent(
         hour_digits=glyphs,
         colon=colon,
@@ -72,9 +85,8 @@ async def main() -> None:
     async with connect(brightness=160) as (connection, sign):
         half = sign.height // 2
         font = font_for(half)
-        glyphs, colon, digit_w, digit_h = font
-        colon_w = max(2, digit_w // 2)
-        left = max(0, (sign.width - (digit_w * 4 + colon_w)) // 2)
+        glyphs, colon, digit_w, digit_h, pair, colon_w = font
+        left = max(0, (sign.width - (pair * 2 + colon_w)) // 2)
         # Centred within each half rather than jammed to its top edge.
         offset = (half - digit_h) // 2
         print(f"{digit_w}x{digit_h} digits, two halves of {half} rows")
