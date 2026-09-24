@@ -21,7 +21,7 @@ from requests import ClockContent, SynchronizeTimeRequest
 WHITE = 0xFFFFFF
 
 DIGIT_W = font_5x9.WIDTH
-DIGIT_H = font_5x9.HEIGHT
+DIGIT_H = font_5x9.DIGIT_HEIGHT
 # A field's width spans both its digits, and the second digit is drawn
 # half that width in -- so a blank column after each digit keeps the
 # pair from touching, and keeps it off the colon that follows.

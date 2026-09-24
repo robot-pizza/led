@@ -14,9 +14,8 @@ So the stopwatch gets the engine, and the countdown is walked down from
 here, one reset per second. That is the way to show two moving counters
 at once, and it also works.
 
-The digit font is chosen to fit half the panel: font_5x9's where there
-is room, and a smaller 5x7 font on a 16-row panel, whose 8-row halves
-are one row short of it.
+The digits are font_5x9's, 7 rows tall, so both counters fit even a
+16-row panel's 8-row halves.
 
 Unlike a Clock, a TimeCount item has no blinking-colon flag, so these
 colons stay lit.
@@ -41,58 +40,46 @@ GREEN, RED = 0x00FF00, 0xFF0000
 
 STOPWATCH, COUNTDOWN = 1, 0
 
-# A colon for the small font: two columns, lit at rows 2 and 5, MSB is
-# the top row.
-SMALL_COLON = bytes([0x24, 0x24])
+DIGIT_W = font_5x9.WIDTH
+DIGIT_H = font_5x9.DIGIT_HEIGHT
+# A field's width spans both its digits, the second drawn half that
+# width in -- so a blank column after each digit keeps the two apart.
+PAIR = (DIGIT_W + 1) * 2
+# A colon bitmap must be exactly as wide as its field: the sign draws
+# the field's full width, reading past a short bitmap into whatever
+# bytes come next.
+COLON_W = 2
 
 
-def font_for(rows: int):
-    """(glyphs, colon, digit width, digit height, pair width, colon
-    width) fitting `rows` rows.
-
-    A pair's width spans both its digits, the second drawn half that
-    width in. font_5x9 gets a blank column after each digit so the two
-    don't touch; the 5x7 font's own glyphs already leave one.
-
-    A colon bitmap must be exactly as wide as its field: the sign draws
-    the field's full width, reading past a short bitmap into whatever
-    bytes come next."""
-    if rows >= font_5x9.HEIGHT:
-        return (font_5x9.digit_table(), font_5x9.colon(2),
-                font_5x9.WIDTH, font_5x9.HEIGHT, (font_5x9.WIDTH + 1) * 2, 2)
-    return lp.digit_glyph_table(), SMALL_COLON, 5, 7, 10, 2
-
-
-def counter(mode: int, row: int, colour: int, left: int, font) -> bytes:
+def counter(mode: int, row: int, colour: int, left: int) -> bytes:
     """MM:SS at `left`, occupying `row` down."""
-    glyphs, colon, digit_w, digit_h, pair, colon_w = font
     return TimeCountContent(
-        hour_digits=glyphs,
-        colon=colon,
+        hour_digits=font_5x9.digit_table(),
+        colon=font_5x9.colon(COLON_W),
         time_count_mode=mode,
-        num_width=digit_w, num_height=digit_h,
+        num_width=DIGIT_W, num_height=DIGIT_H,
         minute_color=colour, minute_start_column=left, minute_start_row=row,
-        minute_width=pair, minute_height=digit_h,
-        space_minute_color=colour, space_minute_start_column=left + pair,
-        space_minute_start_row=row, space_minute_width=colon_w,
-        space_minute_height=digit_h,
-        seconds_color=colour, seconds_start_column=left + pair + colon_w,
-        seconds_start_row=row, seconds_width=pair, seconds_height=digit_h,
+        minute_width=PAIR, minute_height=DIGIT_H,
+        space_minute_color=colour, space_minute_start_column=left + PAIR,
+        space_minute_start_row=row, space_minute_width=COLON_W,
+        space_minute_height=DIGIT_H,
+        seconds_color=colour, seconds_start_column=left + PAIR + COLON_W,
+        seconds_start_row=row, seconds_width=PAIR, seconds_height=DIGIT_H,
     ).encode()
 
 
 async def main() -> None:
     async with connect(brightness=160) as (connection, sign):
         half = sign.height // 2
-        font = font_for(half)
-        glyphs, colon, digit_w, digit_h, pair, colon_w = font
-        left = max(0, (sign.width - (pair * 2 + colon_w)) // 2)
+        # The last pair's trailing blank column isn't counted, so the
+        # counter centres on what is lit.
+        left = max(0, (sign.width - (PAIR * 2 + COLON_W - 1)) // 2)
         # Centred within each half rather than jammed to its top edge.
-        offset = (half - digit_h) // 2
-        print(f"{digit_w}x{digit_h} digits, two halves of {half} rows")
+        offset = (half - DIGIT_H) // 2
+        print(f"{DIGIT_W}x{DIGIT_H} digits, two halves of {half} rows")
         await lp.upload_program(connection, [
-            counter(STOPWATCH, offset, GREEN, left, font),
-            counter(COUNTDOWN, half + offset, RED, left, font),
+            counter(STOPWATCH, offset, GREEN, left),
+            counter(COUNTDOWN, half + offset, RED, left),
         ])
         await asyncio.sleep(1.0)
 
