@@ -257,6 +257,20 @@ That also settles the **query reply (`0x0B`)**, which is undocumented: it is `[i
 >
 > Both password commands XOR every digit against a random one-byte nonce (sent as the first payload byte), then append a running XOR checksum of everything sent so far. Never transmitted in the clear.
 >
+> **[CONFIRMED] How the vendor app uses the PIN**
+>
+> Confirmed from source, not on hardware.
+>
+> - **Six digits, default `000000`.** The app refuses any other length when setting one.
+> - **The app keeps the PIN, not the sign's reply.** The sign never reports its PIN; the app stores the last one that worked, per device MAC address, and assumes `000000` for a sign it hasn't seen. A fresh sign letting the app in on that assumption is the only evidence of the factory default.
+> - **It verifies on every connect** to a CoolLEDUX sign, with the stored PIN. On a wrong-PIN reply it retries, three times in all, then asks the user to type the PIN. A PIN typed in and accepted replaces the stored one.
+> - **Setting a PIN** sends `0x0E` with the new six digits; on a `0` reply the app stores the new PIN.
+> - **"Password on/off" is an app setting.** The switch in the app's settings changes only whether the app verifies on connect, and only for some other sign models. Nothing is sent to the sign, and a CoolLEDUX sign is verified whatever it says.
+>
+> **[BUG] Open question: what a PIN protects**
+>
+> Unknown. Our client never sends a verify and the sign obeys it, but it has only ever driven signs still on `000000`. Whether a sign with a PIN set refuses content or settings from a client that never verified — which is what would make a PIN protect anything — has not been tested, and can't be without setting one. With no known way to reset a forgotten PIN, that experiment waits for a sign it's acceptable to lose, or for the simulator's answer to be replaced by a real one.
+>
 > **[CONFIRMED] Brightness is a live global dimmer, and an 8-bit level**
 >
 > `0x04` changes what is **already on screen**, with nothing re-uploaded. Confirmed by eye on the physical panel, dragging a brightness slider.
