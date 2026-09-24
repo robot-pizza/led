@@ -5,7 +5,8 @@ monospaced and shares one baseline, at row 6:
 
 - capitals, digits and ascenders are 7 rows tall, rows 0-6;
 - lower case is 5 rows tall, rows 2-6, mostly in its left four columns;
-- g, j, p, q, y, the comma and the underscore descend into rows 7-8.
+- g, j, p, q, y and the comma descend into rows 7-8. The underscore
+  doesn't: it sits on the baseline itself.
 
 Digits come in two styles: GLYPHS has the rounded ones, and
 SQUARE_DIGITS the squared-off ones that read like a segment display.
@@ -177,7 +178,7 @@ GLYPHS = {
     'z': ('00000', '00000', '11110', '00010', '00100',
           '01000', '11110', '00000', '00000'),
     '_': ('00000', '00000', '00000', '00000', '00000',
-          '00000', '00000', '00000', '11111'),
+          '00000', '11111', '00000', '00000'),
     '.': ('00000', '00000', '00000', '00000', '00000',
           '00000', '00100', '00000', '00000'),
     ',': ('00000', '00000', '00000', '00000', '00000',
